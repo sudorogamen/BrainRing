@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Брейн-ринг</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+<style>
+:root{--bg:#f3f1ec;--panel:#fff;--ink:#16171d;--mute:#6b6e7a;--line:#dedbd2;--ok:#18a05e;--bad:#d92f3f;--acc:#2a6df4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12131a;--panel:#1b1d27;--ink:#eceae4;--mute:#9a9cab;--line:#2c2f3d}}
+:root[data-theme="dark"]{--bg:#12131a;--panel:#1b1d27;--ink:#eceae4;--mute:#9a9cab;--line:#2c2f3d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Manrope,system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--line)}
+h1{font:700 18px Unbounded,sans-serif;margin:0}h2{font:700 15px Unbounded,sans-serif;margin:0 0 12px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:1px solid var(--line);background:var(--panel);padding:7px 13px;border-radius:9px;font-weight:600}
+nav button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+main{max-width:1120px;margin:0 auto;padding:18px}
+.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+.clock{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px}
+.big{font:700 64px/1 Unbounded,sans-serif;font-variant-numeric:tabular-nums}
+.badge{padding:4px 12px;border-radius:99px;font-weight:800;font-size:13px;background:var(--line)}
+.badge.think{background:var(--acc);color:#fff}.badge.answer{background:#e8a317;color:#16171d}.badge.done{background:var(--ink);color:var(--bg)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);padding:10px 16px;border-radius:10px;font-weight:800}
+.btn:disabled{opacity:.35;cursor:not-allowed}.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-bottom:12px}.bar i{display:block;height:100%;background:var(--ink)}
+.tag{font-size:13px;color:var(--mute);margin:4px 0}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
+textarea{width:100%;min-height:170px}
+.link{flex:1;min-width:180px}
+.team{display:flex;align-items:center;gap:8px;padding:9px;border-radius:12px;border:2px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
+.team.active{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}.team.off{opacity:.5}
+.lamp{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none}
+.team .nm{flex:1;min-width:110px;font-weight:800}.team select{max-width:150px}
+.pts{font:700 20px Unbounded,sans-serif;min-width:30px;text-align:center}
+.mini{border:1px solid var(--line);background:none;border-radius:7px;min-width:30px;height:30px;font-weight:800}
+.log{max-height:150px;overflow:auto;font-size:14px;color:var(--mute);margin:0;padding:0;list-style:none}.log li{padding:3px 0;border-bottom:1px solid var(--line)}
+.rank{padding:10px 12px;border-radius:10px;background:var(--bg);margin-bottom:12px;font-size:15px}
+.br{display:flex;gap:26px;overflow-x:auto;padding:8px 2px;align-items:center}
+.col{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:150px;align-self:stretch}
+.m{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.m .s{padding:7px 10px;font-weight:700;border-bottom:1px solid var(--line);min-height:36px}.m .s:last-child{border:0}
+.m .s.w{background:var(--ok);color:#fff}.m .s.l{opacity:.45;text-decoration:line-through}.m .s[onclick]{cursor:pointer}
+.champ .s{font:700 16px Unbounded,sans-serif;padding:14px}
+.tv{text-align:center;padding:20px 10px}
+.tv .big{font-size:clamp(80px,18vw,200px)}
+.tvwho{font:700 clamp(28px,6vw,64px) Unbounded,sans-serif;min-height:1.3em;color:var(--c)}
+.tvt{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:20px}
+.tvt div{padding:16px;border-radius:14px;border:3px solid var(--line);background:var(--panel)}.tvt .on{border-color:var(--c);box-shadow:0 0 0 8px color-mix(in srgb,var(--c) 25%,transparent)}
+.tvt b{display:block;font-size:20px}.tvt span{font:700 clamp(36px,6vw,64px) Unbounded,sans-serif}
+#ov{position:fixed;inset:0;background:var(--bg);z-index:50;overflow:auto;padding:20px}
+.pad{width:100%;min-height:55vh;border-radius:28px;border:0;background:var(--c);color:#fff;font:700 clamp(26px,7vw,48px) Unbounded,sans-serif;box-shadow:0 10px 0 color-mix(in srgb,var(--c) 60%,#000);touch-action:manipulation;user-select:none}
+.pad:active{transform:translateY(8px);box-shadow:0 2px 0 color-mix(in srgb,var(--c) 60%,#000)}.pad:disabled{filter:grayscale(1);opacity:.4;box-shadow:none}
+.flash{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-weight:800;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}.flash.show{opacity:1}
+#qr{position:fixed;inset:0;background:var(--bg);z-index:60;overflow:auto;padding:20px;text-align:center}
+.qrbox{background:#fff;padding:14px;border-radius:18px;width:min(78vw,420px);margin:18px auto;line-height:0}.qrbox svg{width:100%;height:auto}
+.qrlink{word-break:break-all;color:var(--mute);font-size:14px;max-width:560px;margin:0 auto 14px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<header id="hd"></header>
+<main id="app"></main>
+<div id="ov" hidden></div>
+<div id="qr" hidden></div>
+<div class="flash" id="fl"></div>
+<script>
+const $=s=>document.querySelector(s),esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clk=()=>performance.timeOrigin+performance.now();
+/* ---------- связь через Ably ---------- */
+/* Вставьте сюда ключ Ably с правами только subscribe, publish, presence (см. инструкцию) */
+const ABLY_KEY="TaP7Fg.jCvzCg:emeTSjfPnaubMPLby6Ko9TnBvzURH5n9H5KGxAtQQDk";
+function makeRoom(name){
+ if(!window.Ably||ABLY_KEY.indexOf("ВСТАВЬТЕ")===0)throw new Error("Ably: не указан ключ");
+ const cl=new Ably.Realtime({key:ABLY_KEY,clientId:pid+"-"+Math.random().toString(36).slice(2,6)});
+ const ch=cl.channels.get("br-"+name),M=new Map(),hs=[],cs=[];let mine={};
+ const fire=()=>{const ps=[...M.values()];hs.forEach(h=>h({peers:ps}))};
+ const put=m=>M.set(m.clientId,{presence:m.data||{}});
+ ch.presence.subscribe(m=>{if(m.action==="leave"||m.action==="absent")M.delete(m.clientId);else put(m);fire()});
+ const load=()=>ch.presence.get((e,l)=>{if(!e&&l){l.forEach(put);fire()}});
+ cl.connection.on(c=>{cs.forEach(f=>f(c.current==="connected"));if(c.current==="connected")setTimeout(load,300)});
+ load();
+ return{
+  presence(patch){return new Promise(res=>{for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k]}ch.presence.update(mine,()=>res())})},
+  onPeers(f){hs.push(f)},
+  onConnection(f){cs.push(f)},
+  connected:()=>cl.connection.state==="connected"
+ }
+}
+
+const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
+const col=i=>`hsl(${(i*53+8)%360} 68% 46%)`;
+let role="land",code="",room=null,T="game",V="g",pid=ls("brp")||(Math.random().toString(36).slice(2,10)),ln=null,hostSeen=false;
+ls("brp",pid);
+let S={ph:"idle",left:6e4,al:2e4,thk:60,ans:20,cur:null,win:1,q:1,bl:[],teams:[],ev:{n:0,k:""},rk:[],t0:0},B={s:[],w:{}};
+let LOG=[],IGN=[],DEV={},ND=0,pend={},pt=null,pings={},pn=0,smp={},seen={},tid=0,bn=0,lastJ="",lastEv=null,ls10=-1,sOn=true,AC=null;
+
+/* ---------- sound ---------- */
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==="suspended")AC.resume();return AC}
+function tone(f,d,ty,v,at){const c=ac();if(!c)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+(at||0);o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d)}
+const SND={gong(){tone(110,2.2,"sine",.5);tone(220,1.8,"sine",.3);tone(331,1.2,"sine",.15)},buzz(){tone(880,.25,"square",.2);tone(1320,.3,"square",.15,.12)},ok(){[523,659,784,1047].forEach((f,i)=>tone(f,.25,"triangle",.25,i*.1))},bad(){tone(150,.6,"sawtooth",.25);tone(110,.6,"sawtooth",.25,.1)},warn(){tone(1000,.18,"square",.18);tone(1000,.18,"square",.18,.25)},tick(){tone(700,.07,"square",.12)},horn(){tone(220,1.1,"sawtooth",.3);tone(165,1.1,"sawtooth",.25)}};
+const snd=k=>{if(sOn&&SND[k])SND[k]()};
+document.addEventListener("pointerdown",()=>ac(),{once:true});
+function ev(k){S.ev={n:(S.ev.n||0)+1,k};snd(k)}
+
+/* ---------- helpers ---------- */
+function say(m){const f=$("#fl");f.textContent=m;f.classList.add("show");clearTimeout(say.t);say.t=setTimeout(()=>f.classList.remove("show"),2000)}
+const log=m=>{LOG.unshift(m);LOG=LOG.slice(0,40)};
+const tm=id=>S.teams.find(t=>t.id===id),tn=id=>tm(id)?tm(id).n:"?";
+const sec=()=>Math.ceil((S.ph==="answer"?S.al:S.left)/1e3);
+const pct=()=>S.ph==="answer"?S.al/(S.ans*1e3)*100:S.left/(S.thk*1e3)*100;
+const PH={idle:"Ждём старта",think:"Обсуждение",answer:"Отвечает",done:"Вопрос закрыт"};
+const link=s=>location.href.split("#")[0]+"#"+code+(s||"");
+function wire(){return{...S,teams:S.teams.map(t=>[t.id,t.n,t.s,t.pid||""]),b:B,v:V}}
+function save(){ls("brs-"+code,JSON.stringify({S:{...S,teams:S.teams},B,IGN,DEV,ND,tid}))}
+function pub(){save();render();if(room)room.presence({s:wire()}).catch(()=>{})}
+
+/* ---------- host game logic ---------- */
+function start(){if(S.ph!=="idle")return;S.ph="think";S.pz=false;S.left=S.thk*1e3;S.t0=clk();ev("gong");log("Вопрос "+S.q+": старт");pub()}
+function handle(t,e,adj){
+ if(e!==S.win||S.pz||S.bl.includes(t.id))return;
+ if(S.ph==="idle"){S.bl.push(t.id);ev("bad");log("Фальстарт: "+t.n);say("Фальстарт: "+t.n);pub();return}
+ if(S.ph!=="think"||pend[t.id])return;
+ pend[t.id]=adj;if(!pt)pt=setTimeout(resolve,220)
+}
+function resolve(){
+ pt=null;if(S.ph!=="think"){pend={};return}
+ const a=Object.entries(pend).sort((x,y)=>x[1]-y[1]);pend={};if(!a.length)return;
+ const f=a[0][1];S.cur=+a[0][0];S.ph="answer";S.al=S.ans*1e3;
+ S.rk=a.map(([i,t],k)=>[+i,k?Math.round(t-f):Math.round(t-S.t0)]);
+ ev("buzz");log(tn(S.cur)+" нажали первыми, "+S.rk[0][1]+" мс");pub()
+}
+function pause(){if(S.ph!=="think"&&S.ph!=="answer")return;if(pt){clearTimeout(pt);resolve()}S.pz=!S.pz;log(S.pz?"Пауза":"Продолжили");pub()}
+function endQ(m,k){S.ph="done";S.pz=false;S.cur=null;pend={};ev(k);log(m);pub()}
+function judge(ok,to){
+ if(S.ph!=="answer")return;const t=tm(S.cur);
+ if(ok){t.s++;endQ(t.n+": верно, +1 очко","ok");return}
+ S.bl.push(t.id);S.cur=null;log(t.n+(to?": время вышло":": неверно")+", выбывает");ev("bad");
+ if(S.bl.length>=S.teams.length||S.left<=0)return endQ("Все команды отыграли","horn");
+ S.ph="think";S.pz=false;S.win++;S.t0=clk();S.rk=[];pub()
+}
+function nextQ(){if(S.ph==="done")S.q++;else log("Сброс вопроса "+S.q);S.ph="idle";S.pz=false;S.win++;S.bl=[];S.cur=null;S.rk=[];S.left=S.thk*1e3;pend={};pub()}
+function newGame(){S.teams.forEach(t=>t.s=0);S.q=1;nextQ();S.q=1;LOG=[];pub()}
+function setT(k,v){S[k==="thk"?"thk":"ans"]=Math.max(5,Math.min(300,+v||60));if(S.ph==="idle")S.left=S.thk*1e3;pub()}
+function addTeam(p){const t={id:++tid,n:"Команда "+tid,s:0,pid:p||""};S.teams.push(t);return t}
+const nm=(id,v)=>{tm(id).n=(v||"Команда").slice(0,14);pub()},sc=(id,d)=>{const t=tm(id);t.s=Math.max(0,t.s+d);log("Правка: "+t.n+(d>0?" +1":" −1"));pub()};
+function dv(id,p){S.teams.forEach(t=>{if(t.pid&&t.pid===p&&t.id!==id)t.pid=""});tm(id).pid=p;IGN=IGN.filter(x=>x!==p);pub()}
+function del(id){const t=tm(id);if(t.pid)IGN.push(t.pid);S.teams=S.teams.filter(x=>x.id!==id);S.bl=S.bl.filter(x=>x!==id);if(S.cur===id){S.cur=null;S.ph="think"}pub()}
+const add=()=>{addTeam();pub()};
+function press(id){handle(tm(id),S.win,clk())}
+
+function hostPeers(ps){
+ const now=clk();let ch=false;
+ for(const p of ps){const d=p.presence;if(d.role!=="p"||!d.pid)continue;
+  if(!DEV[d.pid])DEV[d.pid]=++ND;
+  let t=S.teams.find(x=>x.pid===d.pid);
+  if(!t&&!IGN.includes(d.pid)){t=addTeam(d.pid);log("Подключилось устройство "+DEV[d.pid]+" → "+t.n);ch=true}
+  const g=d.pong;if(g&&pings[g.id]&&seen[d.pid+"g"]!==g.id){seen[d.pid+"g"]=g.id;const rtt=now-pings[g.id];smp[d.pid]=(smp[d.pid]||[]).concat({rtt,off:g.tl-(pings[g.id]+rtt/2)}).slice(-6)}
+  const b=d.buzz;if(b&&t&&seen[d.pid]!==b.t+":"+b.k){seen[d.pid]=b.t+":"+b.k;const a=(smp[d.pid]||[]).reduce((m,x)=>!m||x.rtt<m.rtt?x:m,null);handle(t,b.e,b.t-(a?a.off:0))}}
+ ONL=new Set(ps.filter(p=>p.presence.role==="p").map(p=>p.presence.pid));
+ if(ch)pub();else render()
+}
+let ONL=new Set();
+
+/* ---------- client side ---------- */
+function adopt(s){
+ const j=JSON.stringify(s);if(j===lastJ)return;lastJ=j;
+ if(lastEv!==null&&s.ev&&s.ev.n!==lastEv&&!(role==="p"&&s.ev.k==="buzz"))snd(s.ev.k);
+ lastEv=s.ev?s.ev.n:0;
+ S={...s,teams:s.teams.map(a=>({id:a[0],n:a[1],s:a[2],pid:a[3]}))};B=s.b||{s:[],w:{}};V=s.v||"g";render()
+}
+function onP(ch){
+ if(role==="host")return hostPeers(ch.peers);
+ const h=ch.peers.find(p=>p.presence.role==="host");hostSeen=!!h;
+ if(h){if(h.presence.s)adopt(h.presence.s);const g=h.presence.ping;if(g&&g.id!==ln&&role==="p"){ln=g.id;room.presence({pong:{id:g.id,tl:clk()}}).catch(()=>{})}}
+ else render()
+}
+function pbuzz(){
+ if(role!=="p"||!room||S.pz||S.ph==="answer"||S.ph==="done")return;
+ const me=S.teams.find(t=>t.pid===pid);if(!me||S.bl.includes(me.id))return;
+ snd("buzz");room.presence({buzz:{e:S.win,t:clk(),k:++bn}}).catch(()=>{});
+ const b=$(".pad");if(b)b.textContent="Нажато!"
+}
+
+/* ---------- bracket ---------- */
+function calc(){
+ let cur=B.s.slice();if(!cur.length)return[];let n=2;while(n<cur.length)n*=2;while(cur.length<n)cur.push("");
+ const R=[];let r=0;
+ while(cur.length>1){const ms=[],nx=[];for(let i=0;i<cur.length;i+=2){const a=cur[i],b=cur[i+1],k=r+"-"+i/2,w=B.w[k];let win=null;
+  if(a&&!b)win=a;else if(!a&&b)win=b;else if(a&&b&&w!=null)win=w?b:a;ms.push({a,b,k,win});nx.push(win||"")}R.push(ms);cur=nx;r++}
+ return R
+}
+function winB(k,i){
+ const r=+k.split("-")[0];if(B.w[k]===i)delete B.w[k];else B.w[k]=i;
+ Object.keys(B.w).forEach(x=>{if(+x.split("-")[0]>r)delete B.w[x]});pub()
+}
+function brHTML(edit){
+ const R=calc();if(!R.length)return'<p class="tag">Сетка пуста: впишите участников или соберите её из команд.</p>';
+ const ch=R[R.length-1][0].win;
+ return'<div class="br">'+R.map(c=>'<div class="col">'+c.map(m=>'<div class="m">'+[m.a,m.b].map((x,i)=>`<div class="s ${x&&m.win===x?"w":m.win&&x?"l":""}" ${edit&&m.a&&m.b?`onclick="winB('${m.k}',${i})" title="Отметить победителя"`:""}>${esc(x||"—")}</div>`).join("")+"</div>").join("")+"</div>").join("")+`<div class="col"><div class="m champ"><div class="s">${ch?"🏆 "+esc(ch):"…"}</div></div></div></div>`
+}
+function setSlots(v){B.s=v.split("\n").map(x=>x.trim().slice(0,14)).filter(Boolean).slice(0,16);B.w={};pub()}
+const fromTeams=()=>{B.s=S.teams.map(t=>t.n);B.w={};pub()};
+function shuf(){for(let i=B.s.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[B.s[i],B.s[j]]=[B.s[j],B.s[i]]}B.w={};pub()}
+const brReset=()=>{B.w={};pub()},brClear=()=>{B={s:[],w:{}};pub()};
+function brView(){return`<div class="panel"><h2>Турнирная сетка</h2>${brHTML(true)}<p class="tag">Нажмите на участника в паре, чтобы отметить победителя; повторное нажатие снимает отметку.</p></div>
+<div class="panel"><h2>Участники первого круга</h2><textarea id="slots" aria-label="Участники" onchange="setSlots(this.value)" placeholder="По одному на строку, до 16">${esc(B.s.join("\n"))}</textarea>
+<p class="tag">Соседние строки играют друг с другом. Если участников не степень двойки, свободные места станут «—» и соперник проходит дальше. Изменение списка сбрасывает результаты.</p>
+<div class="row"><button class="btn main" onclick="fromTeams()">Собрать из команд</button><button class="btn" onclick="shuf()">Перемешать</button><button class="btn" onclick="brReset()">Сбросить результаты</button><button class="btn bad" onclick="brClear()">Очистить сетку</button>
+<button class="btn" onclick="V=V==='b'?'g':'b';pub()">${V==="b"?"Вернуть игру на табло":"Показать сетку на табло"}</button></div></div>`}
+
+/* ---------- views ---------- */
+function rankH(){if(!S.rk.length)return"";return'<div class="rank">'+S.rk.map((r,i)=>i?`${esc(tn(r[0]))}: +${(r[1]/1e3).toFixed(3)} с`:`<b>${esc(tn(r[0]))}</b> нажали первыми, реакция ${(r[1]/1e3).toFixed(3)} с`).join("<br>")+"</div>"}
+function teamsH(){
+ const devs=[...new Set([...Object.keys(DEV)].filter(p=>ONL.has(p)||S.teams.some(t=>t.pid===p)))];
+ return S.teams.map(t=>`<div class="team ${S.cur===t.id?"active":""} ${S.bl.includes(t.id)?"off":""}" style="--c:${col(t.id)}"><span class="lamp"></span>
+ <input class="nm" value="${esc(t.n)}" maxlength="14" aria-label="Название команды" onchange="nm(${t.id},this.value)">
+ <select aria-label="Устройство" onchange="dv(${t.id},this.value)"><option value="">без устройства</option>${devs.map(p=>`<option value="${p}" ${t.pid===p?"selected":""}>Устройство ${DEV[p]}${ONL.has(p)?"":" (нет связи)"}</option>`).join("")}</select>
+ <button class="mini" onclick="sc(${t.id},-1)" aria-label="Минус очко">−</button><span class="pts">${t.s}</span><button class="mini" onclick="sc(${t.id},1)" aria-label="Плюс очко">+</button>
+ <button class="mini" title="Нажать кнопку за команду" onclick="press(${t.id})">⏺</button><button class="mini" title="Удалить" onclick="del(${t.id})">×</button></div>`).join("")||'<p class="tag">Команд пока нет. Они появятся, когда игроки откроют ссылку.</p>'
+}
+function gameH(){const p=S.ph;return`<div class="grid"><div><div class="panel">
+ <div class="clock"><span class="big" data-c>${sec()}</span><span class="badge ${p}">${S.pz?"Пауза · ":""}${PH[p]}${S.cur?": "+esc(tn(S.cur)):""}</span></div>
+ <div class="bar"><i data-b style="width:${pct()}%"></i></div><p class="tag">Вопрос № ${S.q}</p>${rankH()}
+ <div class="row"><button class="btn main" onclick="start()" ${p!=="idle"?"disabled":""}>Старт (пробел)</button>
+ <button class="btn ok" onclick="judge(true)" ${p!=="answer"?"disabled":""}>Верно</button><button class="btn bad" onclick="judge(false)" ${p!=="answer"?"disabled":""}>Неверно</button>
+ <button class="btn" onclick="pause()" ${p==="idle"||p==="done"?"disabled":""}>${S.pz?"Продолжить":"Стоп"}</button>
+ <button class="btn" onclick="nextQ()">Сброс</button></div>
+ <p class="tag" style="margin-top:12px">Обсуждение, с: <input type="number" style="width:70px" value="${S.thk}" onchange="setT('thk',this.value)"> Ответ, с: <input type="number" style="width:70px" value="${S.ans}" onchange="setT('ans',this.value)"> <button class="mini" style="padding:0 10px;width:auto" onclick="newGame()">Новая игра</button></p></div>
+ <div class="panel"><h2>Протокол</h2><ul class="log">${LOG.map(l=>"<li>"+esc(l)+"</li>").join("")||"<li>Пока пусто</li>"}</ul></div></div>
+ <div class="panel"><h2>Команды</h2>${teamsH()}<div class="row"><button class="btn" onclick="add()">Добавить команду</button></div>
+ <p class="tag">Каждое устройство по ссылке становится отдельной командой. Название и устройство можно менять в любой момент. Клавиши 1–9 нажимают кнопку за команду.</p></div></div>`}
+function tvH(){
+ if(V==="q")return qrH();
+ if(V==="b")return`<div class="tv"><h2>Турнирная сетка</h2>${brHTML(false)}</div>`;
+ const p=S.ph,c=tm(S.cur);
+ return`<div class="tv"><span class="badge ${p}">${S.pz?"Пауза · ":""}${PH[p]}</span><p class="tag">Вопрос № ${S.q}</p><div class="big" data-c>${sec()}</div>
+ <div class="bar" style="max-width:640px;margin:14px auto"><i data-b style="width:${pct()}%"></i></div>
+ <div class="tvwho" style="--c:${c?col(c.id):"inherit"}">${c?esc(c.n):""}</div>
+ <div class="tvt">${S.teams.map(t=>`<div class="${S.cur===t.id?"on":""}" style="--c:${col(t.id)};${S.bl.includes(t.id)?"opacity:.45":""}"><b>${esc(t.n)}</b><span>${t.s}</span></div>`).join("")}</div></div>`
+}
+function playerH(){
+ const me=S.teams.find(t=>t.pid===pid);
+ if(!room)return`<div class="panel"><h2>Нет связи с комнатой</h2><p>Проверьте интернет и обновите страницу.</p></div>`;
+ if(!hostSeen)return`<div class="panel"><h2>Ждём ведущего</h2><p>Комната «${esc(code)}» пока пуста. Страница подключится сама, как только ведущий откроет игру.</p></div>`;
+ if(!me)return`<div class="panel"><h2>Подключаем к команде…</h2></div>`;
+ const bl=S.bl.includes(me.id),p=S.ph;
+ const msg=bl?"Вы выбыли с этого вопроса":S.pz?"Пауза, ждите ведущего":p==="idle"?"Ждите сигнала ведущего":p==="think"?"Жмите первыми!":p==="answer"?(S.cur===me.id?"Отвечайте!":esc(tn(S.cur))+" отвечает"):"Вопрос закрыт";
+ return`<div class="tv" style="padding:0"><p class="tvwho" style="--c:${col(me.id)};font-size:28px">${esc(me.n)} · ${me.s}</p><p class="tag" data-c2>${msg} · <span data-c>${sec()}</span> с</p>
+ <button class="pad" style="--c:${col(me.id)}" onpointerdown="pbuzz()" ${bl||S.pz||p==="answer"||p==="done"?"disabled":""}>${p==="think"?"ЖМИ":"Кнопка"}</button></div>`
+}
+function landH(){return`<div class="panel" style="max-width:560px;margin:30px auto"><h2>Брейн-ринг</h2><p>Создайте комнату и отправьте ссылку игрокам. Каждое устройство, открывшее ссылку, станет отдельной командой. Вопросы вы зачитываете сами, в приложении их нет.</p><button class="btn main" onclick="create()">Создать комнату</button></div>`}
+
+function render(){
+ const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&$("#app").contains(a))return;
+ const h=$("#hd");
+ if(role==="host"){h.innerHTML=`<h1>Брейн-ринг</h1><nav>${[["game","Игра"],["br","Сетка"]].map(([k,l])=>`<button class="${T===k?"on":""}" onclick="T='${k}';render()">${l}</button>`).join("")}<button onclick="showQr()">QR-код</button><button onclick="projector()">Режим проектора</button><button onclick="sOn=!sOn;render()">Звук: ${sOn?"вкл":"выкл"}</button></nav>
+ <div class="row" style="width:100%"><input class="link" readonly value="${esc(link())}" aria-label="Ссылка для игроков" onfocus="this.select()"><button class="btn" onclick="cp(link())">Копировать ссылку игроков</button><button class="btn" onclick="cp(link('-tv'))">Ссылка табло</button><span class="tag">${room?"Устройств онлайн: "+ONL.size:"Нет связи: локальный режим"}</span></div>`;
+  $("#app").innerHTML=T==="game"?gameH():brView()}
+ else{h.innerHTML=`<h1>Брейн-ринг</h1><nav><button onclick="sOn=!sOn;render()">Звук: ${sOn?"вкл":"выкл"}</button></nav>`;
+  $("#app").innerHTML=role==="tv"?tvH():role==="p"?playerH():landH()}
+ if(!$("#ov").hidden)$("#ov").innerHTML=`<button class="btn" onclick="closeOv()">Закрыть табло</button>`+tvH()
+}
+function cp(t){try{navigator.clipboard.writeText(t).then(()=>say("Ссылка скопирована"),()=>say("Скопируйте ссылку вручную"))}catch(e){say("Скопируйте ссылку вручную")}}
+function projector(){$("#ov").hidden=false;render();try{document.documentElement.requestFullscreen()}catch(e){}}
+function qrSvg(){try{const q=qrcode(0,"M");q.addData(link());q.make();return q.createSvgTag({cellSize:8,margin:0,scalable:true})}catch(e){return""}}
+function qrH(){const s=qrSvg();return`<div class="tv"><h2>Наведите камеру, чтобы подключиться</h2>${s?`<div class="qrbox">${s}</div>`:'<p class="tag">QR-код недоступен, используйте ссылку.</p>'}<p class="qrlink">${esc(link())}</p></div>`}
+function showQr(){const o=$("#qr");o.hidden=false;o.innerHTML=`<div class="row" style="justify-content:center"><button class="btn" onclick="$('#qr').hidden=true">Закрыть</button><button class="btn" onclick="cp(link())">Копировать ссылку</button><button class="btn main" onclick="V=V==='q'?'g':'q';pub()">Показать или убрать QR на табло</button></div>`+qrH()}
+function closeOv(){$("#ov").hidden=true;try{document.fullscreenElement&&document.exitFullscreen()}catch(e){}}
+function paint(){document.querySelectorAll("[data-c]").forEach(e=>e.textContent=sec());document.querySelectorAll("[data-b]").forEach(e=>e.style.width=pct()+"%")}
+
+/* ---------- timers ---------- */
+let lt=performance.now();
+function warn(ms){const s=Math.ceil(ms/1e3);if(s===ls10)return;ls10=s;if(s===10)snd("warn");else if(s>0&&s<=5)snd("tick")}
+setInterval(()=>{const n=performance.now(),dt=n-lt;lt=n;
+ if(S.pz){}else if(S.ph==="think"){S.left=Math.max(0,S.left-dt);warn(S.left);if(role==="host"&&S.left<=0&&!pt)endQ("Время вышло, ответа нет","horn")}
+ else if(S.ph==="answer"){S.al=Math.max(0,S.al-dt);warn(S.al);if(role==="host"&&S.al<=0)judge(false,1)}
+ paint()},100);
+document.addEventListener("focusout",()=>setTimeout(render,50));
+document.addEventListener("keydown",e=>{
+ if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+ if(e.code==="Space"){e.preventDefault();role==="host"?start():pbuzz()}
+ else if(role==="host"&&/^[1-9]$/.test(e.key)&&S.teams[+e.key-1])press(S.teams[+e.key-1].id)
+});
+
+/* ---------- init ---------- */
+function create(){const c=Math.random().toString(36).slice(2,8);ls("brh",c);location.hash=c;location.reload()}
+window.addEventListener("hashchange",()=>location.reload());
+(async function init(){
+ const m=location.hash.slice(1).match(/^([a-z0-9]+?)(-tv)?$/);
+ if(!m){render();return}
+ code=m[1];role=m[2]?"tv":ls("brh")===code?"host":"p";
+ if(role==="host"){try{const d=JSON.parse(ls("brs-"+code));if(d){S={...S,...d.S};B=d.B;IGN=d.IGN||[];DEV=d.DEV||{};ND=d.ND||0;tid=d.tid||0;if(S.ph==="think"||S.ph==="answer"){S.pz=false;S.ph="idle";S.win++;S.cur=null;S.bl=[];S.rk=[];S.left=S.thk*1e3}}}catch(e){}}
+ render();
+ try{room=makeRoom("br"+code)}catch(e){console.warn(e);room=null;render();return}
+ room.onPeers(onP);room.onConnection(()=>render());
+ if(role==="host"){await room.presence({role:"host",s:wire()});setInterval(()=>{const id=++pn,t=clk();pings[id]=t;delete pings[id-6];room.presence({ping:{id,t}}).catch(()=>{})},3000)}
+ else room.presence({role:role==="tv"?"tv":"p",pid});
+ render()
+})();
+</script>
+</body>
+</html>
