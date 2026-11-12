@@ -80,17 +80,19 @@ const ABLY_KEY="TaP7Fg.jCvzCg:emeTSjfPnaubMPLby6Ko9TnBvzURH5n9H5KGxAtQQDk";
 function makeRoom(name){
  if(!window.Ably||ABLY_KEY.indexOf("ВСТАВЬТЕ")===0)throw new Error("Ably: не указан ключ");
  const cl=new Ably.Realtime({key:ABLY_KEY,clientId:pid+"-"+Math.random().toString(36).slice(2,6)});
- const ch=cl.channels.get("br-"+name),M=new Map(),hs=[],cs=[];let mine={};
- const fire=()=>{const ps=[...M.values()];hs.forEach(h=>h({peers:ps}))};
+ const ch=cl.channels.get("br-"+name),M=new Map(),hs=[],cs=[],diag={conn:"",ch:"",err:"",hosts:0,n:0},rr=()=>{if(typeof render==="function")render()};let mine={};
+ ch.on(c=>{diag.ch=c.current;if(c.reason)diag.err="канал: "+c.reason.message;rr()});
+ const fire=()=>{const ps=[...M.values()];diag.n=ps.length;diag.hosts=ps.filter(p=>p.presence.role==="host").length;hs.forEach(h=>h({peers:ps}));rr()};
  const put=m=>M.set(m.clientId,{presence:m.data||{}});
  ch.presence.subscribe(m=>{if(m.action==="leave"||m.action==="absent")M.delete(m.clientId);else put(m);fire()});
- const load=()=>ch.presence.get((e,l)=>{if(!e&&l){l.forEach(put);fire()}});
- cl.connection.on(c=>{cs.forEach(f=>f(c.current==="connected"));if(c.current==="connected")setTimeout(load,300)});
+ const load=()=>ch.presence.get((e,l)=>{if(e)diag.err="чтение участников: "+e.message;if(!e&&l){l.forEach(put);fire()}});
+ cl.connection.on(c=>{diag.conn=c.current;if(c.reason)diag.err="соединение: "+c.reason.message;rr();cs.forEach(f=>f(c.current==="connected"));if(c.current==="connected")setTimeout(load,300)});
  load();
  return{
-  presence(patch){return new Promise(res=>{for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k]}ch.presence.update(mine,()=>res())})},
+  presence(patch){return new Promise(res=>{for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k]}ch.presence.update(mine,e=>{if(e){diag.err="отправка: "+(e.message||e);rr()}res()})})},
   onPeers(f){hs.push(f)},
   onConnection(f){cs.push(f)},
+  diag,
   connected:()=>cl.connection.state==="connected"
  }
 }
@@ -266,6 +268,7 @@ function render(){
   $("#app").innerHTML=T==="game"?gameH():brView()}
  else{h.innerHTML=`<h1>Брейн-ринг</h1><nav><button onclick="sOn=!sOn;render()">Звук: ${sOn?"вкл":"выкл"}</button></nav>`;
   $("#app").innerHTML=role==="tv"?tvH():role==="p"?playerH():landH()}
+ if(room&&room.diag){const d=room.diag;$("#app").insertAdjacentHTML("beforeend",`<p class="tag">Связь: ${esc(d.conn||"…")}, канал: ${esc(d.ch||"…")}, участников: ${d.n}, ведущих: ${d.hosts}${d.err?" · ошибка: "+esc(d.err):""}</p>`)}
  if(!$("#ov").hidden)$("#ov").innerHTML=`<button class="btn" onclick="closeOv()">Закрыть табло</button>`+tvH()
 }
 function cp(t){try{navigator.clipboard.writeText(t).then(()=>say("Ссылка скопирована"),()=>say("Скопируйте ссылку вручную"))}catch(e){say("Скопируйте ссылку вручную")}}
