@@ -6,7 +6,7 @@
 <title>Брейн-ринг</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
 <style>
 :root{--bg:#f3f1ec;--panel:#fff;--ink:#16171d;--mute:#6b6e7a;--line:#dedbd2;--ok:#18a05e;--bad:#d92f3f;--acc:#2a6df4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12131a;--panel:#1b1d27;--ink:#eceae4;--mute:#9a9cab;--line:#2c2f3d}}
@@ -84,12 +84,12 @@ function makeRoom(name){
  ch.on(c=>{diag.ch=c.current;if(c.reason)diag.err="канал: "+c.reason.message;rr()});
  const fire=()=>{const ps=[...M.values()];diag.n=ps.length;diag.hosts=ps.filter(p=>p.presence.role==="host").length;hs.forEach(h=>h({peers:ps}));rr()};
  const put=m=>M.set(m.clientId,{presence:m.data||{}});
- ch.presence.subscribe(m=>{if(m.action==="leave"||m.action==="absent")M.delete(m.clientId);else put(m);fire()});
- const load=()=>ch.presence.get((e,l)=>{if(e)diag.err="чтение участников: "+e.message;if(!e&&l){l.forEach(put);fire()}});
+ ch.presence.subscribe(m=>{if(m.action==="leave"||m.action==="absent")M.delete(m.clientId);else put(m);fire()}).catch(e=>{diag.err="подписка: "+e.message;rr()});
+ const load=()=>{ch.presence.get().then(l=>{l.forEach(put);fire()},e=>{diag.err="чтение участников: "+e.message;rr()})};
  cl.connection.on(c=>{diag.conn=c.current;if(c.reason)diag.err="соединение: "+c.reason.message;rr();cs.forEach(f=>f(c.current==="connected"));if(c.current==="connected")setTimeout(load,300)});
  load();
  return{
-  presence(patch){return new Promise(res=>{for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k]}ch.presence.update(mine,e=>{if(e){diag.err="отправка: "+(e.message||e);rr()}res()})})},
+  presence(patch){return new Promise(res=>{for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k]}ch.presence.update(mine).then(()=>res(),e=>{diag.err="отправка: "+(e.message||e);rr();res()})})},
   onPeers(f){hs.push(f)},
   onConnection(f){cs.push(f)},
   diag,
