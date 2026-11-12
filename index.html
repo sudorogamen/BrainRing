@@ -6,7 +6,7 @@
 <title>Брейн-ринг</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
+<script src="https://cdn.ably.com/lib/ably.min-3.js"></script>
 <style>
 :root{--bg:#f3f1ec;--panel:#fff;--ink:#16171d;--mute:#6b6e7a;--line:#dedbd2;--ok:#18a05e;--bad:#d92f3f;--acc:#2a6df4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12131a;--panel:#1b1d27;--ink:#eceae4;--mute:#9a9cab;--line:#2c2f3d}}
@@ -75,11 +75,11 @@ textarea{width:100%;min-height:170px}
 const $=s=>document.querySelector(s),esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const clk=()=>performance.timeOrigin+performance.now();
 /* ---------- связь через Ably ---------- */
-/* Вставьте сюда ключ Ably с правами только subscribe, publish, presence (см. инструкцию) */
-const ABLY_KEY="TaP7Fg.jCvzCg:emeTSjfPnaubMPLby6Ko9TnBvzURH5n9H5KGxAtQQDk";
+/* ВСТАВЬТЕ СЮДА НОВЫЙ API KEY ИЗ ABLY DASHBOARD. Не публикуйте этот файл с ключом в открытом репозитории. Для публичного сайта используйте серверную выдачу токенов. */
+const ABLY_KEY="SuTlEQ.ZthzJA:Vng3U25nz7qvjkU386jI9SmDUts9C5ntKJwbJKeGEBE";
 function makeRoom(name){
- if(!window.Ably||ABLY_KEY.indexOf("ВСТАВЬТЕ")===0)throw new Error("Ably: не указан ключ");
- const cl=new Ably.Realtime({key:ABLY_KEY,clientId:pid+"-"+Math.random().toString(36).slice(2,6)});
+ if(!window.AblyPubSub||ABLY_KEY.indexOf("ВСТАВЬТЕ")===0)throw new Error("Ably: вставьте новый API-ключ в константу ABLY_KEY");
+ const cl=AblyPubSub.createClient({key:ABLY_KEY,clientId:role+"-"+pid});
  const ch=cl.channels.get("br-"+name),M=new Map(),hs=[],cs=[],diag={conn:"",ch:"",err:"",hosts:0,n:0},rr=()=>{if(typeof render==="function")render()};let mine={};
  ch.on(c=>{diag.ch=c.current;if(c.reason)diag.err="канал: "+c.reason.message;rr()});
  const fire=()=>{const ps=[...M.values()];diag.n=ps.length;diag.hosts=ps.filter(p=>p.presence.role==="host").length;hs.forEach(h=>h({peers:ps}));rr()};
