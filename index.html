@@ -41,7 +41,7 @@ textarea{width:100%;min-height:170px}
 .team .nm{flex:1;min-width:110px;font-weight:800}.team select{max-width:150px}
 .pts{font:700 20px Unbounded,sans-serif;min-width:30px;text-align:center}
 .mini{border:1px solid var(--line);background:none;border-radius:7px;min-width:30px;height:30px;font-weight:800}
-.log{max-height:150px;overflow:auto;font-size:14px;color:var(--mute);margin:0;padding:0;list-style:none}.log li{padding:3px 0;border-bottom:1px solid var(--line)}
+.log{max-height:240px;overflow:auto;font-size:14px;color:var(--mute);margin:0;padding:0;list-style:none}.log li{padding:3px 0;border-bottom:1px solid var(--line)}
 .rank{padding:10px 12px;border-radius:10px;background:var(--bg);margin-bottom:12px;font-size:15px}
 .br{display:flex;gap:26px;overflow-x:auto;padding:8px 2px;align-items:center}
 .col{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:150px;align-self:stretch}
@@ -62,6 +62,9 @@ textarea{width:100%;min-height:170px}
 #qr{position:fixed;inset:0;background:var(--bg);z-index:60;overflow:auto;padding:20px;text-align:center}
 .qrbox{background:#fff;padding:14px;border-radius:18px;width:min(78vw,420px);margin:18px auto;line-height:0}.qrbox svg{width:100%;height:auto}
 .qrlink{word-break:break-all;color:var(--mute);font-size:14px;max-width:560px;margin:0 auto 14px}
+.m .s{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sci{width:50px;padding:3px 5px;text-align:center}.sn{font:700 15px Unbounded,sans-serif}
+.team.pin,.tvt .pin{border-color:#e8a317}.team.pin.active,.tvt .pin.on{border-color:var(--c)}.team.pin{background:color-mix(in srgb,#e8a317 12%,transparent)}
 :focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 </style>
 </head>
@@ -120,7 +123,7 @@ const sec=()=>Math.ceil((S.ph==="answer"?S.al:S.left)/1e3);
 const pct=()=>S.ph==="answer"?S.al/(S.ans*1e3)*100:S.left/(S.thk*1e3)*100;
 const PH={idle:"Ждём старта",think:"Обсуждение",answer:"Отвечает",done:"Вопрос закрыт"};
 const link=s=>location.href.split("#")[0]+"#"+code+(s||"");
-function wire(){return{...S,teams:S.teams.map(t=>[t.id,t.n,t.s,t.pid||""]),b:B,v:V}}
+function wire(){return{...S,teams:S.teams.map(t=>[t.id,t.n,t.s,t.pid||"",t.pn?1:0]),b:B,v:V}}
 function save(){ls("brs-"+code,JSON.stringify({S:{...S,teams:S.teams},B,IGN,DEV,ND,tid}))}
 function pub(){save();render();if(room)room.presence({s:wire()}).catch(()=>{})}
 
@@ -164,6 +167,7 @@ function hostPeers(ps){
   if(!DEV[d.pid])DEV[d.pid]=++ND;
   let t=S.teams.find(x=>x.pid===d.pid);
   if(!t&&!IGN.includes(d.pid)){t=addTeam(d.pid);log("Подключилось устройство "+DEV[d.pid]+" → "+t.n);ch=true}
+  const nn=d.nm;if(t&&nn&&S.rn!==false&&seen[d.pid+"n"]!==nn){seen[d.pid+"n"]=nn;const v=String(nn).trim().slice(0,14);if(v&&v!==t.n){log(t.n+" → "+v+" (команда сменила название)");t.n=v;ch=true}}
   const g=d.pong;if(g&&pings[g.id]&&seen[d.pid+"g"]!==g.id){seen[d.pid+"g"]=g.id;const rtt=now-pings[g.id];smp[d.pid]=(smp[d.pid]||[]).concat({rtt,off:g.tl-(pings[g.id]+rtt/2)}).slice(-6)}
   const b=d.buzz;if(b&&t&&seen[d.pid]!==b.t+":"+b.k){seen[d.pid]=b.t+":"+b.k;const a=(smp[d.pid]||[]).reduce((m,x)=>!m||x.rtt<m.rtt?x:m,null);handle(t,b.e,b.t-(a?a.off:0))}}
  ONL=new Set(ps.filter(p=>p.presence.role==="p").map(p=>p.presence.pid));
@@ -176,7 +180,7 @@ function adopt(s){
  const j=JSON.stringify(s);if(j===lastJ)return;lastJ=j;
  if(lastEv!==null&&s.ev&&s.ev.n!==lastEv&&!(role==="p"&&s.ev.k==="buzz"))snd(s.ev.k);
  lastEv=s.ev?s.ev.n:0;
- S={...s,teams:s.teams.map(a=>({id:a[0],n:a[1],s:a[2],pid:a[3]}))};B=s.b||{s:[],w:{}};V=s.v||"g";render()
+ S={...s,teams:s.teams.map(a=>({id:a[0],n:a[1],s:a[2],pid:a[3],pn:!!a[4]}))};B=s.b||{s:[],w:{}};V=s.v||"g";render()
 }
 function onP(ch){
  if(role==="host")return hostPeers(ch.peers);
@@ -184,6 +188,7 @@ function onP(ch){
  if(h){if(h.presence.s)adopt(h.presence.s);const g=h.presence.ping;if(g&&g.id!==ln&&role==="p"){ln=g.id;room.presence({pong:{id:g.id,tl:clk()}}).catch(()=>{})}}
  else render()
 }
+function setMyName(v){v=String(v||"").trim().slice(0,14);if(!v||!room)return;room.presence({nm:v}).catch(()=>{});say("Название отправлено ведущему")}
 function pbuzz(){
  if(role!=="p"||!room||S.pz||S.ph==="answer"||S.ph==="done")return;
  const me=S.teams.find(t=>t.pid===pid);if(!me||S.bl.includes(me.id))return;
@@ -195,24 +200,28 @@ function pbuzz(){
 function calc(){
  let cur=B.s.slice();if(!cur.length)return[];let n=2;while(n<cur.length)n*=2;while(cur.length<n)cur.push("");
  const R=[];let r=0;
- while(cur.length>1){const ms=[],nx=[];for(let i=0;i<cur.length;i+=2){const a=cur[i],b=cur[i+1],k=r+"-"+i/2,w=B.w[k];let win=null;
-  if(a&&!b)win=a;else if(!a&&b)win=b;else if(a&&b&&w!=null)win=w?b:a;ms.push({a,b,k,win});nx.push(win||"")}R.push(ms);cur=nx;r++}
+ while(cur.length>1){const ms=[],nx=[];for(let i=0;i<cur.length;i+=2){const a=cur[i],b=cur[i+1],k=r+"-"+i/2,w=B.w[k],sc=(B.sc||{})[k];let win=null;
+  if(a&&!b)win=a;else if(!a&&b)win=b;else if(a&&b){const d=sc&&sc[0]!==""&&sc[1]!==""&&sc[0]!=null&&sc[1]!=null&&+sc[0]!==+sc[1];if(d)win=+sc[1]>+sc[0]?b:a;else if(w!=null)win=w?b:a}ms.push({a,b,k,win,sc});nx.push(win||"")}R.push(ms);cur=nx;r++}
  return R
 }
 function winB(k,i){
  const r=+k.split("-")[0];if(B.w[k]===i)delete B.w[k];else B.w[k]=i;
- Object.keys(B.w).forEach(x=>{if(+x.split("-")[0]>r)delete B.w[x]});pub()
+ clearDown(r);pub()
 }
+function clearDown(r){["w","sc"].forEach(o=>Object.keys(B[o]||{}).forEach(x=>{if(+x.split("-")[0]>r)delete B[o][x]}))}
+function setSc(k,i,v){B.sc=B.sc||{};const c=B.sc[k]||["",""];c[i]=v===""?"":Math.max(0,Math.min(999,+v||0));B.sc[k]=c;clearDown(+k.split("-")[0]);pub()}
+function fromGame(k){const m=calc().flat().find(x=>x.k===k),a=S.teams.find(t=>t.n===m.a),b=S.teams.find(t=>t.n===m.b);if(!a||!b){say("Названия в паре не совпадают с названиями команд");return}B.sc=B.sc||{};B.sc[k]=[a.s,b.s];clearDown(+k.split("-")[0]);pub()}
+function scH(m,i,edit){const v=m.sc?m.sc[i]:"";if(edit&&m.a&&m.b)return`<input class="sci" type="number" min="0" inputmode="numeric" aria-label="Счёт" value="${v==null?"":v}" onclick="event.stopPropagation()" onchange="setSc('${m.k}',${i},this.value)">`;return v!==""&&v!=null&&m.a&&m.b?`<b class="sn">${v}</b>`:""}
 function brHTML(edit){
  const R=calc();if(!R.length)return'<p class="tag">Сетка пуста: впишите участников или соберите её из команд.</p>';
  const ch=R[R.length-1][0].win;
- return'<div class="br">'+R.map(c=>'<div class="col">'+c.map(m=>'<div class="m">'+[m.a,m.b].map((x,i)=>`<div class="s ${x&&m.win===x?"w":m.win&&x?"l":""}" ${edit&&m.a&&m.b?`onclick="winB('${m.k}',${i})" title="Отметить победителя"`:""}>${esc(x||"—")}</div>`).join("")+"</div>").join("")+"</div>").join("")+`<div class="col"><div class="m champ"><div class="s">${ch?"🏆 "+esc(ch):"…"}</div></div></div></div>`
+ return'<div class="br">'+R.map(c=>'<div class="col">'+c.map(m=>'<div class="m">'+[m.a,m.b].map((x,i)=>`<div class="s ${x&&m.win===x?"w":m.win&&x?"l":""}" ${edit&&m.a&&m.b?`onclick="winB('${m.k}',${i})" title="Отметить победителя"`:""}><span>${esc(x||"—")}</span>${scH(m,i,edit)}</div>`).join("")+(edit&&m.a&&m.b?`<button class="mini" style="width:100%;border:0;border-top:1px solid var(--line);border-radius:0;font-size:12px" onclick="fromGame('${m.k}')">Счёт из игры</button>`:"")+"</div>").join("")+"</div>").join("")+`<div class="col"><div class="m champ"><div class="s">${ch?"🏆 "+esc(ch):"…"}</div></div></div></div>`
 }
-function setSlots(v){B.s=v.split("\n").map(x=>x.trim().slice(0,14)).filter(Boolean).slice(0,16);B.w={};pub()}
-const fromTeams=()=>{B.s=S.teams.map(t=>t.n);B.w={};pub()};
-function shuf(){for(let i=B.s.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[B.s[i],B.s[j]]=[B.s[j],B.s[i]]}B.w={};pub()}
-const brReset=()=>{B.w={};pub()},brClear=()=>{B={s:[],w:{}};pub()};
-function brView(){return`<div class="panel"><h2>Турнирная сетка</h2>${brHTML(true)}<p class="tag">Нажмите на участника в паре, чтобы отметить победителя; повторное нажатие снимает отметку.</p></div>
+function setSlots(v){B.s=v.split("\n").map(x=>x.trim().slice(0,14)).filter(Boolean).slice(0,16);B.w={};B.sc={};pub()}
+const fromTeams=()=>{B.s=S.teams.map(t=>t.n);B.w={};B.sc={};pub()};
+function shuf(){for(let i=B.s.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[B.s[i],B.s[j]]=[B.s[j],B.s[i]]}B.w={};B.sc={};pub()}
+const brReset=()=>{B.w={};B.sc={};pub()},brClear=()=>{B={s:[],w:{}};pub()};
+function brView(){return`<div class="panel"><h2>Турнирная сетка</h2>${brHTML(true)}<p class="tag">Нажмите на участника в паре, чтобы отметить победителя; повторное нажатие снимает отметку. Счёт вводится в поле справа от участника: при разных очках победитель определяется сам, при равных его отмечают нажатием.</p></div>
 <div class="panel"><h2>Участники первого круга</h2><textarea id="slots" aria-label="Участники" onchange="setSlots(this.value)" placeholder="По одному на строку, до 16">${esc(B.s.join("\n"))}</textarea>
 <p class="tag">Соседние строки играют друг с другом. Если участников не степень двойки, свободные места станут «—» и соперник проходит дальше. Изменение списка сбрасывает результаты.</p>
 <div class="row"><button class="btn main" onclick="fromTeams()">Собрать из команд</button><button class="btn" onclick="shuf()">Перемешать</button><button class="btn" onclick="brReset()">Сбросить результаты</button><button class="btn bad" onclick="brClear()">Очистить сетку</button>
@@ -220,13 +229,15 @@ function brView(){return`<div class="panel"><h2>Турнирная сетка</h
 
 /* ---------- views ---------- */
 function rankH(){if(!S.rk.length)return"";return'<div class="rank">'+S.rk.map((r,i)=>i?`${esc(tn(r[0]))}: +${(r[1]/1e3).toFixed(3)} с`:`<b>${esc(tn(r[0]))}</b> нажали первыми, реакция ${(r[1]/1e3).toFixed(3)} с`).join("<br>")+"</div>"}
+const ord=()=>[...S.teams].sort((a,b)=>(b.pn?1:0)-(a.pn?1:0));
+const pin=id=>{const t=tm(id);t.pn=!t.pn;pub()};
 function teamsH(){
  const devs=[...new Set([...Object.keys(DEV)].filter(p=>ONL.has(p)||S.teams.some(t=>t.pid===p)))];
- return S.teams.map(t=>`<div class="team ${S.cur===t.id?"active":""} ${S.bl.includes(t.id)?"off":""}" style="--c:${col(t.id)}"><span class="lamp"></span>
+ return ord().map(t=>`<div class="team ${S.cur===t.id?"active":""} ${S.bl.includes(t.id)?"off":""} ${t.pn?"pin":""}" style="--c:${col(t.id)}"><span class="lamp"></span>
  <input class="nm" value="${esc(t.n)}" maxlength="14" aria-label="Название команды" onchange="nm(${t.id},this.value)">
  <select aria-label="Устройство" onchange="dv(${t.id},this.value)"><option value="">без устройства</option>${devs.map(p=>`<option value="${p}" ${t.pid===p?"selected":""}>Устройство ${DEV[p]}${ONL.has(p)?"":" (нет связи)"}</option>`).join("")}</select>
  <button class="mini" onclick="sc(${t.id},-1)" aria-label="Минус очко">−</button><span class="pts">${t.s}</span><button class="mini" onclick="sc(${t.id},1)" aria-label="Плюс очко">+</button>
- <button class="mini" title="Нажать кнопку за команду" onclick="press(${t.id})">⏺</button><button class="mini" title="Удалить" onclick="del(${t.id})">×</button></div>`).join("")||'<p class="tag">Команд пока нет. Они появятся, когда игроки откроют ссылку.</p>'
+ <button class="mini" title="Закрепить команду" onclick="pin(${t.id})">${t.pn?"★":"☆"}</button><button class="mini" title="Нажать кнопку за команду" onclick="press(${t.id})">⏺</button><button class="mini" title="Удалить" onclick="del(${t.id})">×</button></div>`).join("")||'<p class="tag">Команд пока нет. Они появятся, когда игроки откроют ссылку.</p>'
 }
 function gameH(){const p=S.ph;return`<div class="grid"><div><div class="panel">
  <div class="clock"><span class="big" data-c>${sec()}</span><span class="badge ${p}">${S.pz?"Пауза · ":""}${PH[p]}${S.cur?": "+esc(tn(S.cur)):""}</span></div>
@@ -235,10 +246,11 @@ function gameH(){const p=S.ph;return`<div class="grid"><div><div class="panel">
  <button class="btn ok" onclick="judge(true)" ${p!=="answer"?"disabled":""}>Верно</button><button class="btn bad" onclick="judge(false)" ${p!=="answer"?"disabled":""}>Неверно</button>
  <button class="btn" onclick="pause()" ${p==="idle"||p==="done"?"disabled":""}>${S.pz?"Продолжить":"Стоп"}</button>
  <button class="btn" onclick="nextQ()">Сброс</button></div>
- <p class="tag" style="margin-top:12px">Обсуждение, с: <input type="number" style="width:70px" value="${S.thk}" onchange="setT('thk',this.value)"> Ответ, с: <input type="number" style="width:70px" value="${S.ans}" onchange="setT('ans',this.value)"> <button class="mini" style="padding:0 10px;width:auto" onclick="newGame()">Новая игра</button></p></div>
- <div class="panel"><h2>Протокол</h2><ul class="log">${LOG.map(l=>"<li>"+esc(l)+"</li>").join("")||"<li>Пока пусто</li>"}</ul></div></div>
+ <p class="tag" style="margin-top:12px">Обсуждение, с: <input type="number" style="width:70px" value="${S.thk}" onchange="setT('thk',this.value)"> Ответ, с: <input type="number" style="width:70px" value="${S.ans}" onchange="setT('ans',this.value)"> <button class="mini" style="padding:0 10px;width:auto" onclick="newGame()">Новая игра</button></p></div></div>
  <div class="panel"><h2>Команды</h2>${teamsH()}<div class="row"><button class="btn" onclick="add()">Добавить команду</button></div>
- <p class="tag">Каждое устройство по ссылке становится отдельной командой. Название и устройство можно менять в любой момент. Клавиши 1–9 нажимают кнопку за команду.</p></div></div>`}
+ <label class="tag" style="display:block;margin-top:10px"><input type="checkbox" ${S.rn!==false?"checked":""} onchange="S.rn=this.checked;pub()"> Команды могут сами менять своё название</label>
+ <p class="tag">Каждое устройство по ссылке становится отдельной командой. Название и устройство можно менять в любой момент. Клавиши 1–9 нажимают кнопку за команду.</p></div></div>
+<div class="panel"><h2>Протокол</h2><ul class="log">${LOG.map(l=>"<li>"+esc(l)+"</li>").join("")||"<li>Пока пусто</li>"}</ul></div>`}
 function tvH(){
  if(V==="q")return qrH();
  if(V==="b")return`<div class="tv"><h2>Турнирная сетка</h2>${brHTML(false)}</div>`;
@@ -246,7 +258,7 @@ function tvH(){
  return`<div class="tv"><span class="badge ${p}">${S.pz?"Пауза · ":""}${PH[p]}</span><p class="tag">Вопрос № ${S.q}</p><div class="big" data-c>${sec()}</div>
  <div class="bar" style="max-width:640px;margin:14px auto"><i data-b style="width:${pct()}%"></i></div>
  <div class="tvwho" style="--c:${c?col(c.id):"inherit"}">${c?esc(c.n):""}</div>
- <div class="tvt">${S.teams.map(t=>`<div class="${S.cur===t.id?"on":""}" style="--c:${col(t.id)};${S.bl.includes(t.id)?"opacity:.45":""}"><b>${esc(t.n)}</b><span>${t.s}</span></div>`).join("")}</div></div>`
+ <div class="tvt">${ord().map(t=>`<div class="${S.cur===t.id?"on":""} ${t.pn?"pin":""}" style="--c:${col(t.id)};${S.bl.includes(t.id)?"opacity:.45":""}"><b>${t.pn?"★ ":""}${esc(t.n)}</b><span>${t.s}</span></div>`).join("")}</div></div>`
 }
 function playerH(){
  const me=S.teams.find(t=>t.pid===pid);
@@ -256,7 +268,8 @@ function playerH(){
  const bl=S.bl.includes(me.id),p=S.ph;
  const msg=bl?"Вы выбыли с этого вопроса":S.pz?"Пауза, ждите ведущего":p==="idle"?"Ждите сигнала ведущего":p==="think"?"Жмите первыми!":p==="answer"?(S.cur===me.id?"Отвечайте!":esc(tn(S.cur))+" отвечает"):"Вопрос закрыт";
  return`<div class="tv" style="padding:0"><p class="tvwho" style="--c:${col(me.id)};font-size:28px">${esc(me.n)} · ${me.s}</p><p class="tag" data-c2>${msg} · <span data-c>${sec()}</span> с</p>
- <button class="pad" style="--c:${col(me.id)}" onpointerdown="pbuzz()" ${bl||S.pz||p==="answer"||p==="done"?"disabled":""}>${p==="think"?"ЖМИ":"Кнопка"}</button></div>`
+ <button class="pad" style="--c:${col(me.id)}" onpointerdown="pbuzz()" ${bl||S.pz||p==="answer"||p==="done"?"disabled":""}>${p==="think"?"ЖМИ":"Кнопка"}</button>
+ ${S.rn!==false?`<div class="row" style="margin-top:18px;justify-content:center"><input id="mynm" maxlength="14" value="${esc(me.n)}" aria-label="Название команды" onchange="setMyName(this.value)"><button class="btn" onclick="setMyName($('#mynm').value)">Сменить название</button></div>`:""}</div>`
 }
 function landH(){return`<div class="panel" style="max-width:560px;margin:30px auto"><h2>Брейн-ринг</h2><p>Создайте комнату и отправьте ссылку игрокам. Каждое устройство, открывшее ссылку, станет отдельной командой. Вопросы вы зачитываете сами, в приложении их нет.</p><button class="btn main" onclick="create()">Создать комнату</button></div>`}
 
